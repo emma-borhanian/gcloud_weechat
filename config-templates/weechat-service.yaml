@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: weechat
+  name: weechat
+spec:
+  ports:
+    - port: 8001
+  selector:
+    name: weechat

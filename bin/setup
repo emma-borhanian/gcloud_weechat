@@ -1,0 +1,47 @@
+#!/bin/bash
+set -e
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$BASEDIR/.."
+
+if [[ -f .env ]]; then
+  source .env
+fi
+
+if [ "$(git branch | grep "\\*")" != "* master" ] ; then
+  read -p 'You are not on master, are you sure you want to deploy? (y/n) ' -r REPLY
+  if [ ! "$REPLY" = 'y' ]; then
+    exit 1
+  fi
+fi
+
+CONFIG_DIR=tmp/config
+
+echo "configuring templates..."
+WEECHAT_PASSWORD="$WEECHAT_PASSWORD" \
+  CLOUDSDK_CORE_PROJECT="$CLOUDSDK_CORE_PROJECT" \
+  ruby lib/configure_templates.rb
+
+weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
+
+echo "building weechat..."
+docker build -t "$weechat_docker_image" docker-weechat
+
+echo "uploading weechat image..."
+gcloud docker push "$weechat_docker_image"
+
+echo "creating persistent disk..."
+gcloud compute disks create --size 10GB weechat-disk || true
+
+echo "creating cluster..."
+gcloud container clusters create weechat --num-nodes 1 || true
+gcloud container clusters get-credentials weechat
+
+echo "stopping weechat..."
+kubectl delete service weechat || true
+kubectl delete pod weechat || true
+rm tmp/instance-name.txt || true
+
+echo "running weechat..."
+kubectl create -f "$CONFIG_DIR/weechat-pod.yaml"
+kubectl create -f "$CONFIG_DIR/weechat-service.yaml"

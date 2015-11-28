@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$BASEDIR/.."
+
+if [[ -f .env ]]; then
+  source .env
+fi
+
+if [ "$(git branch | grep "\\*")" != "* master" ] ; then
+  read -p 'You are not on master, are you sure you want to deploy? (y/n) ' -r REPLY
+  if [ ! "$REPLY" = 'y' ]; then
+    exit 1
+  fi
+fi
+
+mkdir -p tmp
+
+if [[ ! -f tmp/instance-name.txt ]]; then
+  instanceGroupUrl=$(gcloud container clusters describe weechat | ruby -e "require 'yaml';puts YAML.load(STDIN.read)['instanceGroupUrls'].first")
+  gcloud_token=$(cat "$HOME/.config/gcloud/credentials" | ruby -e "require 'json';puts JSON.parse(STDIN.read)['data'].first['credential']['access_token']")
+  groupUrl=$(curl "$instanceGroupUrl?access_token=$gcloud_token" 2>/dev/null | ruby -e "require 'json';puts JSON.parse(STDIN.read)['group']")
+  instanceUrl=$(curl "$groupUrl?access_token=$gcloud_token" 2>/dev/null | ruby -e "require 'json';puts JSON.parse(STDIN.read)['resources'].first")
+  instanceName=$(rev <<< "$instanceUrl" | cut -f1 -d'/' | rev)
+  echo "$instanceName" > tmp/instance-name.txt
+else
+  instanceName=$(cat tmp/instance-name.txt)
+fi
+
+weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
+
+gcloud compute ssh -t "$instanceName" --command "sudo docker attach \$(sudo docker ps | grep \"gcr.io/api-project-245360528179/weechat\" | cut -f1 -d ' ')"

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: weechat
+  labels:
+    name: weechat
+spec:
+  containers:
+    - resources:
+        limits:
+          cpu: 0.1
+      # image: <dynamically set>
+      name: weechat
+      env:
+        - name: HOME
+          value: /var/lib/weechat
+        #- name: WEECHAT_PASSWORD
+        #  value: <dynamically set>
+      ports:
+        - containerPort: 8001
+          name: weechat
+      volumeMounts:
+        - name: weechat-persistent-storage
+          mountPath: /var/lib/weechat
+      stdin: true
+      tty: true
+  volumes:
+    - name: weechat-persistent-storage
+      gcePersistentDisk:
+        pdName: weechat-disk
+        fsType: ext4
