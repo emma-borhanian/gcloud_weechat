@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$BASEDIR/.."
+
+if [[ -f .env ]]; then
+  source .env
+fi
+
+mkdir -p tmp
+
+if [[ ! -f tmp/instance-name.txt ]]; then
+  instanceGroupUrl=$(gcloud container clusters describe weechat | ruby -e "require 'yaml';puts YAML.load(STDIN.read)['instanceGroupUrls'].first")
+  instanceGroupName=$(grep -o "[^/]*$" <<< $instanceGroupUrl)
+  instanceUrl=$(gcloud compute instance-groups list-instances "$instanceGroupName" --format json | ruby -e "require 'json';puts JSON.parse(STDIN.read).first['instance']")
+  instanceName=$(grep -o "[^/]*$" <<< "$instanceUrl")
+  echo "$instanceName" > tmp/instance-name.txt
+fi
+
+echo "$(cat tmp/instance-name.txt)"
