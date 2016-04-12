@@ -30,4 +30,4 @@ fi
 
 weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
 
-gcloud compute ssh -t "$instanceName" --command "sudo docker attach \$(sudo docker ps | grep \"gcr.io/api-project-245360528179/weechat\" | cut -f1 -d ' ')"
+gcloud compute ssh -t "$instanceName" --command "sudo docker attach \$(sudo docker ps | grep \"$weechat_docker_image\" | cut -f1 -d ' ')"
