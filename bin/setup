@@ -15,10 +15,6 @@ if [ "$(git branch | grep "\\*")" != "* master" ] ; then
   fi
 fi
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  eval "$(docker-machine env default)"
-fi
-
 CONFIG_DIR=tmp/config
 
 echo "configuring templates..."
