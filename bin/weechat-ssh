@@ -10,4 +10,4 @@ fi
 
 instanceName=$(lib/find-instance-name)
 
-gcloud compute ssh -t "$instanceName"
+gcloud compute ssh --ssh-flag=-t "$instanceName"
