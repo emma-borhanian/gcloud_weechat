@@ -18,9 +18,7 @@ fi
 CONFIG_DIR=tmp/config
 
 echo "configuring templates..."
-WEECHAT_PASSWORD="$WEECHAT_PASSWORD" \
-  CLOUDSDK_CORE_PROJECT="$CLOUDSDK_CORE_PROJECT" \
-  ruby lib/configure_templates.rb
+ruby lib/configure_templates.rb
 
 weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
 
