@@ -10,5 +10,3 @@ export WEECHAT_PASSWORD=#password for weechat relay service
 ```
 * Run `bin/setup`
 * Run `bin/weechat` to attach
-
-Currently a bit broken due to https://github.com/docker/docker/issues/15373
