@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: weechat
+  labels:
+    name: weechat
+spec:
+  containers:
+    - name: weechat
+      # image: gcr.io/$CLOUDSDK_CORE_PROJECT/weechat
+      env:
+        - name: HOME
+          value: /var/lib/weechat
+      # args:
+      #  - -r
+      #  - <weechat startup commands>
+      ports:
+        - containerPort: 8001
+      volumeMounts:
+        - name: weechat-disk
+          mountPath: /var/lib/weechat
+      stdin: true
+      tty: true
+    - name: ssh-relay
+    # env:
+    #  - name: AUTHORIZED_KEYS
+    #    value: $AUTHORIZED_KEYS
+    # image: gcr.io/$CLOUDSDK_CORE_PROJECT/openssh-server
+      ports:
+        - containerPort: 23
+  volumes:
+    - name: weechat-disk
+      gcePersistentDisk:
+        pdName: weechat-disk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weechat
+spec:
+  selector:
+    name: weechat
+  ports:
+    - port: 8001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weechat-ssh-relay
+spec:
+  selector:
+    name: weechat
+  ports:
+    - port: 23
+      targetPort: 23
+      nodePort: 31085
+  type: NodePort

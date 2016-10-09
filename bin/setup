@@ -17,29 +17,41 @@ fi
 
 CONFIG_DIR=tmp/config
 
-echo "configuring templates..."
+echo "configuring templates"
 ruby lib/configure_templates.rb
 
 weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
+openssh_server_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/openssh-server"
 
-echo "building weechat..."
-docker build -t "$weechat_docker_image" docker-weechat
+echo "building docker images"
+docker $DOCKER_OPTS build -t "$weechat_docker_image" docker-weechat
+docker $DOCKER_OPTS build -t "$openssh_server_docker_image" docker-openssh-server
 
-echo "uploading weechat image..."
+echo "uploading docker images"
 gcloud docker -- push "$weechat_docker_image"
+gcloud docker -- push "$openssh_server_docker_image"
 
-echo "creating persistent disk..."
+echo "creating persistent disk"
 gcloud compute disks create --size 10GB weechat-disk || true
 
-echo "creating cluster..."
+echo "creating cluster"
 gcloud container clusters create weechat --num-nodes 1 || true
 gcloud container clusters get-credentials weechat
 
-echo "stopping weechat..."
-kubectl delete service weechat || true
-kubectl delete pod weechat || true
 rm tmp/instance-name.txt || true
 
-echo "running weechat..."
-kubectl create -f "$CONFIG_DIR/weechat-pod.yaml"
-kubectl create -f "$CONFIG_DIR/weechat-service.yaml"
+echo "stopping weechat"
+kubectl delete -f "$CONFIG_DIR/resources.yaml" || true
+
+echo "running weechat"
+kubectl create -f "$CONFIG_DIR/resources.yaml"
+
+instanceName=$(lib/find-instance-name)
+instanceDescription=$(gcloud compute instances describe "$instanceName")
+instanceTag=$(ruby -e "require 'yaml';puts YAML.load(STDIN.read)['tags']['items'].first" <<< "$instanceDescription")
+instanceExternalIp=$(ruby -e "require 'yaml';puts YAML.load(STDIN.read)['networkInterfaces'].first['accessConfigs'].first['natIP']" <<< "$instanceDescription")
+
+yes | gcloud compute firewall-rules delete allow-weechat-ssh-relay || true
+gcloud compute firewall-rules create allow-weechat-ssh-relay --allow tcp:31085 --source-ranges=0.0.0.0/0 --target-tags "$instanceTag"
+
+echo "SSH Relay available at client@$instanceExternalIp:31085"

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+mkdir -p /home/client/.ssh/
+echo "$AUTHORIZED_KEYS" > /home/client/.ssh/authorized_keys
+
+/usr/sbin/sshd "$@"
