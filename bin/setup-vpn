@@ -1,0 +1,60 @@
+#!/bin/bash
+set -e
+
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$BASEDIR/.."
+
+if [[ -f .env ]]; then
+  source .env
+fi
+
+if [ "$(git branch | grep "\\*")" != "* master" ] ; then
+  read -p 'You are not on master, are you sure you want to deploy? (y/n) ' -r REPLY
+  if [ ! "$REPLY" = 'y' ]; then
+    exit 1
+  fi
+fi
+
+if [[ ! "$VPN_IRC_HOST" ]]; then
+  echo IRC_HOST is required.
+  exit 1
+fi
+
+if [[ ! "$VPN_IRC_PORT" ]]; then
+  echo IRC_PORT is required.
+  exit 1
+fi
+
+if [[ ! -d "$1" ]]; then
+  echo "Usage: setup-vpn path/to/credentials-directory"
+  exit 1
+fi
+
+# VPN Tunnels are an order of magnitude more expensive than f1-micro instances.
+
+gcloud compute instances create vpn-tunnel --machine-type=f1-micro || true
+gcloud compute disks create --size=10GB vpn-credentials || true
+
+mkdir -p tmp
+cat <<STARTUP_SCRIPT > tmp/vpn-tunnel-startup-script
+sudo apt-get update &&
+  sudo apt-get upgrade -y &&
+  sudo apt-get install -y openvpn socat &&
+  sudo mount -o discard,defaults /dev/disk/by-id/google-vpn-credentials /mnt/disks/vpn-credentials &&
+  sudo openvpn --cd /mnt/disks/vpn-credentials --daemon --config /mnt/disks/vpn-credentials/ovpn.conf &&
+  socat tcp-listen:6667,reuseaddr,fork tcp:$VPN_IRC_HOST:$VPN_IRC_PORT
+STARTUP_SCRIPT
+
+gcloud compute instances add-metadata vpn-tunnel --metadata-from-file=startup-script=tmp/vpn-tunnel-startup-script
+
+gcloud compute instances attach-disk vpn-tunnel --disk=vpn-credentials --device-name=vpn-credentials || true
+cat <<COMMAND | gcloud compute ssh vpn-tunnel
+umount /dev/disk/by-id/google-vpn-credentials
+sudo mkfs.ext4 -F -E lazy_itable_init=0,lazy_journal_init=0,discard /dev/disk/by-id/google-vpn-credentials && \
+  sudo mkdir -p /mnt/disks/vpn-credentials && \
+  sudo mount -o discard,defaults /dev/disk/by-id/google-vpn-credentials /mnt/disks/vpn-credentials
+sudo chmod a+w /mnt/disks/vpn-credentials
+COMMAND
+gcloud compute copy-files "$1"/* vpn-tunnel:/mnt/disks/vpn-credentials
+
+gcloud compute ssh vpn-tunnel --command="sudo reboot"
