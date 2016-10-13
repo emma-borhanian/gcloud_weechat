@@ -18,4 +18,4 @@ if [[ ! -f tmp/instance-name.txt ]]; then
   echo "$instanceName" > tmp/instance-name.txt
 fi
 
-echo "$(cat tmp/instance-name.txt)"
+cat tmp/instance-name.txt
