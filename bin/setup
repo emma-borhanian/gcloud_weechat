@@ -23,7 +23,6 @@ ruby lib/configure_templates.rb
 weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
 openssh_server_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/openssh-server"
 
-if false; then
 echo "building docker images"
 docker build $DOCKER_OPTS -t "$weechat_docker_image" docker-weechat
 docker build $DOCKER_OPTS -t "$openssh_server_docker_image" docker-openssh-server
