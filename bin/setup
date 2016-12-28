@@ -23,9 +23,10 @@ ruby lib/configure_templates.rb
 weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
 openssh_server_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/openssh-server"
 
+if false; then
 echo "building docker images"
-docker $DOCKER_OPTS build -t "$weechat_docker_image" docker-weechat
-docker $DOCKER_OPTS build -t "$openssh_server_docker_image" docker-openssh-server
+docker build $DOCKER_OPTS -t "$weechat_docker_image" docker-weechat
+docker build $DOCKER_OPTS -t "$openssh_server_docker_image" docker-openssh-server
 
 echo "uploading docker images"
 gcloud docker -- push "$weechat_docker_image"
@@ -40,11 +41,8 @@ gcloud container clusters get-credentials weechat
 
 rm tmp/instance-name.txt || true
 
-echo "stopping weechat"
-kubectl delete -f "$CONFIG_DIR/resources.yaml" || true
-
-echo "running weechat"
-kubectl create -f "$CONFIG_DIR/resources.yaml"
+echo "replacing weechat"
+kubectl replace -f "$CONFIG_DIR/resources.yaml" || true
 
 instanceName=$(lib/find-instance-name)
 instanceDescription=$(gcloud compute instances describe "$instanceName")
