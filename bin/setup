@@ -41,7 +41,7 @@ gcloud container clusters get-credentials weechat
 rm tmp/instance-name.txt || true
 
 echo "replacing weechat"
-kubectl replace --force --filename "$CONFIG_DIR/resources.yaml"
+yes | kubectl replace --force --filename "$CONFIG_DIR/resources.yaml"
 
 instanceName=$(lib/find-instance-name)
 instanceDescription=$(gcloud compute instances describe "$instanceName")
