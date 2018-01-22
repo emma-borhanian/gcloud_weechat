@@ -11,5 +11,5 @@ fi
 instanceName=$(lib/find-instance-name)
 weechat_docker_image="gcr.io/$CLOUDSDK_CORE_PROJECT/weechat"
 
-command='docker attach "$(docker ps | grep "$(docker images | grep "'"$weechat_docker_image"'" | sed "s/  */\t/g" | cut -f3)" | cut -f1 -d" ")"'
+command='docker attach "$(docker ps | grep "'"$weechat_docker_image"'" | cut -f1 -d" ")"'
 gcloud compute ssh --ssh-flag=-t "$instanceName" --command "$command"
