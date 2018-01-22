@@ -14,4 +14,4 @@ RUN useradd client -m -d /home/client && \
 
 EXPOSE 23
 
-ENTRYPOINT ["./launch-sshd", "-D"]
+ENTRYPOINT ["./launch-sshd", "-D", "-e"]
